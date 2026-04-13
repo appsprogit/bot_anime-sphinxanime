@@ -71,17 +71,14 @@ def scrapear_y_enviar_todo():
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             
-            # --- TRAMPA ANTI-BOT: Le decimos a la web que somos un humano usando Windows y Chrome ---
             context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
             page = context.new_page()
             
             print("Entrando a SphinxAnime y esperando a que la red se estabilice...")
-            # wait_until="networkidle" espera a que terminen de cargar todos los scripts
             page.goto(url, wait_until="networkidle", timeout=60000)
             
-            # Pausa táctica de 5 segundos para que aparezcan los animes
             print("Esperando 5 segundos extra para renderizado...")
             page.wait_for_timeout(5000) 
             
@@ -131,7 +128,7 @@ def scrapear_y_enviar_todo():
             <td align="center" valign="top" style="padding: 15px; width: 33.33%;">
                 <div style="width: 250px; background-color: #1a1a2e; border: 2px solid #e94560; border-radius: 15px; overflow: hidden; margin: 0 auto; display: block;">
                     <a href="{anime['link']}" target="_blank" style="text-decoration: none; display: block;">
-                        <div style="background-color: #0f3460; color: #fff; font-weight: bold; padding: 10px; font-size: 14px; border-bottom: 2px solid #e94560; text-align: center; height: 40px; overflow: hidden;">
+                        <div style="background-color: #0f3460; color: #fff; font-weight: bold; padding: 8px 5px; font-size: 11px; line-height: 1.3; border-bottom: 2px solid #e94560; text-align: center; height: 45px; overflow: hidden;">
                             {anime['title']}
                         </div>
                         <div style="padding: 10px; text-align: center; background-color: #1a1a2e;">
