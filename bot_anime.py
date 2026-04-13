@@ -115,16 +115,20 @@ def scrapear_y_enviar_todo():
         enviar_correo("⚠️ Alerta: Bot vacío SphinxAnime", "No se encontraron animes. Hay que revisar los selectores.")
         return
 
-    print(f"Éxito: Generando grilla para {len(animes_data)} animes...")
+    print(f"Éxito: Generando grillas independientes para {len(animes_data)} animes...")
     
-    html_anime_cards = "<table width='100%' cellpadding='0' cellspacing='0' border='0' style='max-width: 900px; margin: auto;'>\n"
+    # Preparamos las dos versiones de la grilla
+    html_cards_correo = "<table width='100%' cellpadding='0' cellspacing='0' border='0' style='max-width: 900px; margin: auto;'>\n"
+    html_cards_telegram = "<table width='100%' cellpadding='0' cellspacing='0' border='0' style='max-width: 900px; margin: auto;'>\n"
     
     for i in range(0, len(animes_data), 3):
-        html_anime_cards += "<tr>\n"
+        html_cards_correo += "<tr>\n"
+        html_cards_telegram += "<tr>\n"
         row_animes = animes_data[i:i+3]
         
         for anime in row_animes:
-            html_anime_cards += f"""
+            # --- VERSIÓN CORREO (Letra pequeña: 11px) ---
+            html_cards_correo += f"""
             <td align="center" valign="top" style="padding: 15px; width: 33.33%;">
                 <div style="width: 250px; background-color: #1a1a2e; border: 2px solid #e94560; border-radius: 15px; overflow: hidden; margin: 0 auto; display: block;">
                     <a href="{anime['link']}" target="_blank" style="text-decoration: none; display: block;">
@@ -139,13 +143,33 @@ def scrapear_y_enviar_todo():
             </td>
             """
             
-        for _ in range(3 - len(row_animes)):
-            html_anime_cards += "<td style='width: 33.33%; padding: 15px;'></td>\n"
+            # --- VERSIÓN TELEGRAM (Letra original: 14px) ---
+            html_cards_telegram += f"""
+            <td align="center" valign="top" style="padding: 15px; width: 33.33%;">
+                <div style="width: 250px; background-color: #1a1a2e; border: 2px solid #e94560; border-radius: 15px; overflow: hidden; margin: 0 auto; display: block;">
+                    <a href="{anime['link']}" target="_blank" style="text-decoration: none; display: block;">
+                        <div style="background-color: #0f3460; color: #fff; font-weight: bold; padding: 10px; font-size: 14px; border-bottom: 2px solid #e94560; text-align: center; height: 40px; overflow: hidden;">
+                            {anime['title']}
+                        </div>
+                        <div style="padding: 10px; text-align: center; background-color: #1a1a2e;">
+                            <img src="{anime['image_url']}" alt="{anime['title']}" width="230" height="300" style="width: 230px; height: 300px; object-fit: cover; display: block; margin: 0 auto; border: none; border-radius: 8px;">
+                        </div>
+                    </a>
+                </div>
+            </td>
+            """
             
-        html_anime_cards += "</tr>\n"
+        for _ in range(3 - len(row_animes)):
+            html_cards_correo += "<td style='width: 33.33%; padding: 15px;'></td>\n"
+            html_cards_telegram += "<td style='width: 33.33%; padding: 15px;'></td>\n"
+            
+        html_cards_correo += "</tr>\n"
+        html_cards_telegram += "</tr>\n"
         
-    html_anime_cards += "</table>\n"
+    html_cards_correo += "</table>\n"
+    html_cards_telegram += "</table>\n"
 
+    # Envolvemos cada grilla en su contenedor principal
     html_body_email = f"""
     <div style="font-family: Arial, sans-serif; background-color: #0d1117; padding: 20px;">
         <div style="max-width: 900px; margin: 0 auto; background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px;">
@@ -153,18 +177,31 @@ def scrapear_y_enviar_todo():
             <p style="font-size: 16px; text-align: center; margin-bottom: 40px; color: #c9d1d9;">
                 Eduardo, aquí tienes los últimos {len(animes_data)} animes publicados:
             </p>
-            {html_anime_cards}
+            {html_cards_correo}
         </div>
     </div>
     """
 
+    html_body_telegram = f"""
+    <div style="font-family: Arial, sans-serif; background-color: #0d1117; padding: 20px;">
+        <div style="max-width: 900px; margin: 0 auto; background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px;">
+            <h1 style="color: #e94560; text-align: center; margin-bottom: 30px;">⛩️ Novedades del Día - SphinxAnime ⛩️</h1>
+            <p style="font-size: 16px; text-align: center; margin-bottom: 40px; color: #c9d1d9;">
+                Eduardo, aquí tienes los últimos {len(animes_data)} animes publicados:
+            </p>
+            {html_cards_telegram}
+        </div>
+    </div>
+    """
+
+    # Enviamos cada versión a su destino
     enviar_correo(
         asunto="⛩️ Novedades del Día - SphinxAnime",
         cuerpo_texto="Tu cliente de correo no soporta HTML.",
         cuerpo_html=html_body_email
     )
 
-    asyncio.run(generar_captura_html_y_enviar_telegram(html_body_email))
+    asyncio.run(generar_captura_html_y_enviar_telegram(html_body_telegram))
 
 if __name__ == "__main__":
     scrapear_y_enviar_todo()
