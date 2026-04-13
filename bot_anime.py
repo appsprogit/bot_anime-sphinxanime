@@ -6,7 +6,6 @@ from playwright.sync_api import sync_playwright
 from playwright.async_api import async_playwright
 import telegram 
 
-# --- FUNCIÓN 1: Enviar correos ---
 def enviar_correo(asunto, cuerpo_texto, cuerpo_html=None):
     print(f"Preparando correo: {asunto}")
     email_sender = os.environ.get("EMAIL_USER")
@@ -21,7 +20,6 @@ def enviar_correo(asunto, cuerpo_texto, cuerpo_html=None):
     msg['Subject'] = asunto
     msg['From'] = email_sender
     msg['To'] = email_receiver
-    
     msg.set_content(cuerpo_texto)
     
     if cuerpo_html:
@@ -35,7 +33,6 @@ def enviar_correo(asunto, cuerpo_texto, cuerpo_html=None):
     except Exception as e:
         print(f"Error al enviar el correo: {e}")
 
-# --- FUNCIÓN 2: Renderizar y Enviar a Telegram ---
 async def generar_captura_html_y_enviar_telegram(html_content):
     print("Generando captura para Telegram...")
     telegram_token = os.environ.get("TELEGRAM_TOKEN")
@@ -65,23 +62,32 @@ async def generar_captura_html_y_enviar_telegram(html_content):
     except Exception as e:
         print(f"Error en Telegram: {e}")
 
-# --- FUNCIÓN PRINCIPAL ---
 def scrapear_y_enviar_todo():
     url = "https://sphinxanime.com/"
     animes_data = []
 
-    print("Extrayendo datos de SphinxAnime...")
+    print("Iniciando el navegador para extraer datos...")
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
             
-            page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            # --- TRAMPA ANTI-BOT: Le decimos a la web que somos un humano usando Windows y Chrome ---
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
+            page = context.new_page()
             
-            # --- MAGIA APLICADA: Selectores exactos gracias a tu HTML ---
+            print("Entrando a SphinxAnime y esperando a que la red se estabilice...")
+            # wait_until="networkidle" espera a que terminen de cargar todos los scripts
+            page.goto(url, wait_until="networkidle", timeout=60000)
+            
+            # Pausa táctica de 5 segundos para que aparezcan los animes
+            print("Esperando 5 segundos extra para renderizado...")
+            page.wait_for_timeout(5000) 
+            
             elementos = page.query_selector_all("div.recent-item") 
+            print(f"¡Se encontraron {len(elementos)} bloques de anime en la página!")
             
-            # Procesamos los primeros 12 para la grilla
             for el in elementos[:12]:
                 enlace_titulo = el.query_selector("h3.post-box-title a")
                 imagen_el = el.query_selector("div.post-thumbnail img")
@@ -89,10 +95,8 @@ def scrapear_y_enviar_todo():
                 if enlace_titulo and imagen_el:
                     title = enlace_titulo.inner_text()
                     link = enlace_titulo.get_attribute("href")
-                    # Soporte por si usan lazy loading u ocultación de src
-                    image_url = imagen_el.get_attribute("src") or imagen_el.get_attribute("data-src") or imagen_el.get_attribute("srcset")
                     
-                    # Limpiamos la URL de la imagen si trae srcset (tomamos la primera url antes del espacio)
+                    image_url = imagen_el.get_attribute("src") or imagen_el.get_attribute("data-src") or imagen_el.get_attribute("srcset")
                     if image_url and ' ' in image_url:
                         image_url = image_url.split(' ')[0]
                     
@@ -102,7 +106,8 @@ def scrapear_y_enviar_todo():
                             'link': link,
                             'image_url': image_url
                         })
-                        print(f" - Extraído: {title.strip()[:30]}...")
+                        print(f" - Capturado: {title.strip()[:30]}...")
+                        
             browser.close()
             
     except Exception as e:
@@ -113,9 +118,8 @@ def scrapear_y_enviar_todo():
         enviar_correo("⚠️ Alerta: Bot vacío SphinxAnime", "No se encontraron animes. Hay que revisar los selectores.")
         return
 
-    print(f"Se encontraron {len(animes_data)} animes. Generando HTML...")
+    print(f"Éxito: Generando grilla para {len(animes_data)} animes...")
     
-    # --- HTML MODO OSCURO (ESTILO ANIME) ---
     html_anime_cards = "<table width='100%' cellpadding='0' cellspacing='0' border='0' style='max-width: 900px; margin: auto;'>\n"
     
     for i in range(0, len(animes_data), 3):
