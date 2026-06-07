@@ -2,11 +2,11 @@ name: Check SphinxAnime Daily
 
 on:
   schedule:
-    # 13:30 UTC = 8:30 AM en Bogotá
+    # 11:00 UTC corresponde a las 6:00 AM en Bogotá
     - cron: '0 11 * * *'
   workflow_dispatch:
 
-# Añadimos este bloque de permisos para que la Action pueda interactuar con el repositorio
+# Permisos requeridos para que el bot pueda realizar el push
 permissions:
   contents: write
 
@@ -35,8 +35,12 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python bot_anime.py
 
-      # Paso nuevo: Evita que GitHub inactive el workflow por falta de commits en el repo
-      - name: Keepalive Workflow
-        uses: gautamkrishnar/keepalive-workflow@v2
-        with:
-          use_api: true
+      # Solución nativa: Actualiza un archivo local y hace push usando los nuevos permisos
+      - name: Prevenir inactividad (Keepalive Nativo)
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          echo "Última ejecución: $(date)" > keepalive.txt
+          git add keepalive.txt
+          git commit -m "Chore: Mantener workflow activo" || exit 0
+          git push
