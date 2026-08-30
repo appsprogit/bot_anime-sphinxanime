@@ -10,7 +10,7 @@ def enviar_correo(asunto, cuerpo_texto, cuerpo_html=None):
     print(f"Preparando correo: {asunto}")
     email_sender = os.environ.get("EMAIL_USER")
     email_password = os.environ.get("EMAIL_PASS")
-    email_receiver = "eduardoguerere@gmail.com"
+    email_receiver = "datodeprueba@gmail.com"
 
     if not email_sender or not email_password:
         print("Error crítico: Secretos de GitHub no encontrados.")
